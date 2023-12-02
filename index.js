@@ -5,8 +5,9 @@ const ejsMate = require('ejs-mate')
 const catchAsync = require('./utilities/catchAsync')
 const methodOverride = require('method-override')
 const Campground = require('./models/campgrounds/camground')
+const Review = require('./models/reviews/review')
 const ExpressError = require('./utilities/ExpressError')
-const { campgroundSchema } = require('./schemas/index')
+const { campgroundSchema, reviewSchema } = require('./schemas/index')
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
     .then(() => {
@@ -26,6 +27,8 @@ app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
 
+
+
 // Sirve para poder obtener el req.body de un FORM (URLENCODED)
 app.use(express.urlencoded({ extended: true }))
 // Sirve para poder obtener el req.body desde JSON
@@ -35,6 +38,16 @@ app.use(methodOverride('_method'))
 
 const validateCampground = (req, res, next) => {
     const { error } = campgroundSchema.validate(req.body)
+    if (error) {
+        const msg = error.details.map(el => el.message).join(',')
+        throw new ExpressError(msg)
+    } else {
+        next()
+    }
+}
+
+const validateReview = (req, res, next) => {
+    const { error } = reviewSchema.validate(req.body)
     if (error) {
         const msg = error.details.map(el => el.message).join(',')
         throw new ExpressError(msg)
@@ -58,7 +71,8 @@ app.get('/campgrounds/new', (req, res) => {
 
 app.get('/campgrounds/:id', catchAsync(async (req, res, next) => {
     const { id } = req.params
-    const campground = await Campground.findById(id)
+    const campground = await Campground.findById(id).populate('reviews')
+    console.log(campground)
     res.render('campgrounds/show', { campground })
 }))
 
@@ -89,11 +103,22 @@ app.delete('/campgrounds/:id', catchAsync(async (req, res, next) => {
     res.redirect('/campgrounds')
 }))
 
+app.post('/campgrounds/:id/reviews', validateReview, catchAsync(async (req, res) => {
+    const { id } = req.params
+    const campground = await Campground.findById(id)
+    const newReview = new Review(req.body.review)
+    campground.reviews.push(newReview)
+    await newReview.save()
+    await campground.save()
+    res.redirect(`/campgrounds/${campground._id}`)
+}))
+
 app.all('*', (req, res, next) => {
     next(new ExpressError('Page Not Found', 404))
 })
 
 app.use((err, req, res, next) => {
+    console.log("hello?")
     const { statusCode = 500 } = err
     if (!err.message) err.message = 'Oh boy, something went wrong'
     res.status(statusCode).render('error', { err })
