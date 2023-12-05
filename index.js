@@ -34,6 +34,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 // Sirve para poder simular un metodo desde un form (En este caso)
 app.use(methodOverride('_method'))
+app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/campgrounds', campgrounds)
 app.use('/campgrounds/:id/reviews', reviews)

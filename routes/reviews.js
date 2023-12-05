@@ -1,5 +1,5 @@
 const express = require('express')
-// Para hacer merge a los params que vengan desde el app.use en index.js (:id)
+// mergeParams Para hacer merge a los params que vengan desde el app.use en index.js (:id)
 const router = express.Router({ mergeParams: true })
 
 const catchAsync = require('../utilities/catchAsync')
