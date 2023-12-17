@@ -7,6 +7,8 @@ const ExpressError = require('../utilities/ExpressError')
 const Campground = require('../models/campgrounds/campground')
 const { campgroundSchema } = require('../schemas/index')
 
+const { isLoggedIn } = require('../middleware')
+
 const validateCampground = (req, res, next) => {
     const { error } = campgroundSchema.validate(req.body)
     if (error) {
@@ -22,13 +24,16 @@ router.get('/', catchAsync(async (req, res, next) => {
     res.render('campgrounds/index', { campgrounds })
 }))
 
-router.get('/new', (req, res) => {
+router.get('/new', isLoggedIn, (req, res) => {
     res.render('campgrounds/new')
 })
 
 router.get('/:id', catchAsync(async (req, res, next) => {
     const { id } = req.params
-    const campground = await Campground.findById(id).populate('reviews')
+    const campground = await Campground.findById(id)
+        .populate('reviews')
+        .populate('author')
+    console.log(res.locals.currentUser, campground.author)
     if (!campground) {
         req.flash('error', 'Cannot find that campground')
         res.redirect('/campgrounds')
@@ -36,7 +41,7 @@ router.get('/:id', catchAsync(async (req, res, next) => {
     res.render('campgrounds/show', { campground })
 }))
 
-router.get('/:id/edit', catchAsync(async (req, res, next) => {
+router.get('/:id/edit', isLoggedIn, catchAsync(async (req, res, next) => {
     const { id } = req.params
     const campground = await Campground.findById(id)
     if (!campground) {
@@ -46,15 +51,16 @@ router.get('/:id/edit', catchAsync(async (req, res, next) => {
     res.render('campgrounds/edit', { campground })
 }))
 
-router.post('/', validateCampground, catchAsync(async (req, res, next) => {
+router.post('/', isLoggedIn, validateCampground, catchAsync(async (req, res, next) => {
     // if (!req.body.campground) throw new ExpressError('Invalid Campground Data', 400)
     const campground = new Campground(req.body.campground)
+    campground.author = req.user._id
     await campground.save()
     req.flash('success', 'Successfully made a new campground!')
     res.redirect(`/campgrounds/${campground._id}`)
 }))
 
-router.put('/:id', validateCampground, catchAsync(async (req, res, next) => {
+router.put('/:id', isLoggedIn, validateCampground, catchAsync(async (req, res, next) => {
     const { id } = req.params
     // req.body.campground porque en el form de edit tengo el parametro 'name' de los inputs como 'campground[xxx]'
     const campground = await Campground.findByIdAndUpdate(id, req.body.campground, { runValidators: true, new: true })
@@ -62,7 +68,7 @@ router.put('/:id', validateCampground, catchAsync(async (req, res, next) => {
     res.redirect(`/campgrounds/${campground._id}`)
 }))
 
-router.delete('/:id', catchAsync(async (req, res, next) => {
+router.delete('/:id', isLoggedIn, catchAsync(async (req, res, next) => {
     const { id } = req.params
     const campground = await Campground.findByIdAndDelete(id)
     req.flash('success', 'Successfully deleted a campground!')
