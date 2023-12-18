@@ -26,6 +26,10 @@ const login = (req, res) => {
     res.redirect(redirectUrl);
 }
 
+const renderLoginForm = (req, res) => {
+    res.render('users/login')
+}
+
 const logout = (req, res, next) => {
     req.logout(function (err) {
         if (err) {
@@ -40,5 +44,6 @@ module.exports = {
     renderRegisterForm,
     register,
     login,
+    renderLoginForm,
     logout
 }
