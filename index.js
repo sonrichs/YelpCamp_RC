@@ -58,7 +58,7 @@ passport.use(new LocalStrategy(User.authenticate()))
 passport.serializeUser(User.serializeUser())
 passport.deserializeUser(User.deserializeUser())
 
-// Para poder tener acceso a flash desde los views
+// Para poder tener acceso a flash desde los views y a currentUser
 app.use((req, res, next) => {
     res.locals.currentUser = req.user
     res.locals.success = req.flash('success')
