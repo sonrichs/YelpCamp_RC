@@ -1,4 +1,5 @@
 const Campground = require('../models/campgrounds/campground')
+const { cloudinary } = require('../cloudinary')
 
 const index = async (req, res, next) => {
     const campgrounds = await Campground.find({})
@@ -52,8 +53,21 @@ const renderEditForm = async (req, res, next) => {
 
 const updateCampground = async (req, res, next) => {
     const { id } = req.params
+    console.log(req.body)
     // req.body.campground porque en el form de edit tengo el parametro 'name' de los inputs como 'campground[xxx]'
-    const campground = await Campground.findByIdAndUpdate(id, req.body.campground, { runValidators: true, new: true })
+    const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground }, { runValidators: true, new: true })
+    const imgs = req.files.map(file => ({
+        url: file.path,
+        filename: file.filename
+    }))
+    campground.images.push(...imgs)
+    await campground.save()
+    if (req.body.deleteImages) {
+        for (let filename of req.body.deleteImages) {
+            await cloudinary.uploader.destroy(filename)
+        }
+        await campground.updateOne({ $pull: { images: { filename: { $in: req.body.deleteImages } } } })
+    }
     req.flash('success', 'Successfully updated the campground!')
     res.redirect(`/campgrounds/${campground._id}`)
 }
