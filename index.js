@@ -19,8 +19,11 @@ const helmet = require('helmet')
 const userRoutes = require('./routes/users')
 const campgroundRoutes = require('./routes/campgrounds')
 const reviewRoutes = require('./routes/reviews')
+const MongoStore = require('connect-mongo')
 
-mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
+// const dbUrl = process.env.DB_URL
+const dbUrl = 'mongodb://127.0.0.1:27017/yelp-camp'
+mongoose.connect(dbUrl)
     .then(() => {
         console.log("CONNECTION OPEN")
     })
@@ -46,7 +49,20 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 app.use(mongoSanitize());
 
+const store = MongoStore.create({
+    mongoUrl: dbUrl,
+    touchAfter: 24 * 60 * 60,
+    crypto: {
+        secret: 'thisshouldbeabettersecret'
+    }
+})
+
+store.on('error', function(e){
+    console.log("SESSION STORE ERROR", e)
+})
+
 const sessionConfig = {
+    store,
     name: 'session',
     secret: 'thisshouldbeabettersecret',
     resave: false,
