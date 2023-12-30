@@ -60,7 +60,6 @@ const renderEditForm = async (req, res, next) => {
 
 const updateCampground = async (req, res, next) => {
     const { id } = req.params
-    console.log(req.body)
     // req.body.campground porque en el form de edit tengo el parametro 'name' de los inputs como 'campground[xxx]'
     const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground }, { runValidators: true, new: true })
     const imgs = req.files.map(file => ({
